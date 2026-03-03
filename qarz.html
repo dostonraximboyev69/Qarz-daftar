@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qarz Pro - Full Animation</title>
+    <style>
+        :root {
+            --bg-day: linear-gradient(-45deg, #ff9a9e, #fad0c4, #ffd1ff, #a1c4fd);
+            --bg-night: linear-gradient(-45deg, #0f2027, #203a43, #2c5364);
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --text-color: #333;
+        }
+
+        body.dark-mode {
+            --card-bg: rgba(25, 25, 25, 0.95);
+            --text-color: #eee;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            margin: 0; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background 1.5s ease-in-out;
+            background-size: 400% 400%;
+            animation: gradientMove 15s ease infinite;
+            overflow-x: hidden;
+        }
+
+        /* Orqa fon harakati */
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Yulduzlar stili */
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            animation: twinkle 3s infinite;
+            z-index: -1;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0; transform: scale(0.5); }
+        }
+
+        .container { 
+            width: 90%;
+            max-width: 400px; 
+            background: var(--card-bg); 
+            backdrop-filter: blur(15px);
+            padding: 25px; 
+            border-radius: 30px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3); 
+            color: var(--text-color);
+            position: relative;
+            z-index: 10;
+        }
+
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { 
+            flex: 1; padding: 12px; border: none; cursor: pointer; 
+            border-radius: 15px; background: rgba(150,150,150,0.2); 
+            font-weight: bold; color: var(--text-color); transition: 0.3s;
+        }
+        .tab-btn.active { background: #ff4757; color: white; box-shadow: 0 5px 15px rgba(255, 71, 87, 0.4); }
+
+        .debt-card { 
+            background: rgba(150,150,150,0.1); 
+            padding: 15px; 
+            border-radius: 20px; 
+            margin-bottom: 15px; 
+            border-left: 5px solid #2ed573;
+            animation: slideIn 0.5s ease forwards;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .overdue { border-left: 5px solid #ff4757; background: rgba(255, 71, 87, 0.1); }
+
+        .action-btns { display: flex; gap: 5px; margin-top: 10px; }
+        .action-btns button { 
+            flex: 1; padding: 8px; border: none; border-radius: 10px; 
+            color: white; font-weight: bold; cursor: pointer; font-size: 11px;
+        }
+        .btn-plus { background: #3498db; }
+        .btn-minus { background: #f39c12; }
+        .btn-del { background: #ff4757; }
+
+        .plus-btn { 
+            position: fixed; bottom: 30px; right: 30px; 
+            width: 65px; height: 65px; background: #ff4757; 
+            color: white; border-radius: 50%; border: none; 
+            font-size: 35px; cursor: pointer; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            transition: 0.3s;
+            z-index: 100;
+        }
+        .plus-btn:hover { transform: scale(1.1) rotate(90deg); }
+
+        /* Modal */
+        .modal { 
+            display: none; position: fixed; inset: 0; 
+            background: rgba(0,0,0,0.8); justify-content: center; 
+            align-items: center; z-index: 200; 
+        }
+        .modal-content { 
+            background: var(--card-bg); padding: 30px; 
+            border-radius: 25px; width: 80%; max-width: 320px; 
+        }
+        input { 
+            width: 100%; padding: 12px; margin: 10px 0; 
+            border-radius: 12px; border: 1px solid #ccc; 
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body id="body">
+
+<div id="stars-container"></div>
+
+<div class="container">
+    <div id="clock" style="text-align:center; font-size:12px; margin-bottom:10px; opacity:0.7"></div>
+    <h2 style="text-align: center; margin: 0 0 10px 0;">💰 Qarz Daftarim</h2>
+    <div id="total-amount" style="text-align:center; font-weight:bold; color:#ff4757; margin-bottom:15px;"></div>
+    
+    <div class="tabs">
+        <button class="tab-btn active" id="t1" onclick="render('active')">Qarzlar</button>
+        <button class="tab-btn" id="t2" onclick="render('archive')">Arxiv</button>
+    </div>
+
+    <div id="list" style="max-height: 400px; overflow-y: auto;"></div>
+</div>
+
+<button class="plus-btn" onclick="openModal('new')">+</button>
+
+<div class="modal" id="modal">
+    <div class="modal-content">
+        <h3 id="modal-title" style="margin-top:0">Yangi qarz</h3>
+        <input type="text" id="name" placeholder="Kimga?">
+        <input type="number" id="amount" placeholder="Summa (so'm)">
+        <label id="date-label" style="font-size:12px">Qaytarish sanasi:</label>
+        <input type="date" id="deadline">
+        <button onclick="saveData()" style="width:100%; padding:12px; background:#2ed573; color:white; border:none; border-radius:12px; font-weight:bold; cursor:pointer;">Saqlash</button>
+        <button onclick="closeModal()" style="width:100%; margin-top:10px; background:none; border:none; color:gray; cursor:pointer;">Bekor qilish</button>
+    </div>
+</div>
+
+<script>
+    let debts = JSON.parse(localStorage.getItem('pro_debts_v3')) || [];
+    let currentMode = 'new';
+    let currentId = null;
+
+    // Real vaqt va Tungi rejim (Yulduzlar bilan)
+    function updateMode() {
+        const h = new Date().getHours();
+        const b = document.getElementById('body');
+        const sc = document.getElementById('stars-container');
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString() + (h >= 19 || h < 6 ? " 🌙" : " ☀️");
+
+        if (h >= 19 || h < 6) {
+            b.classList.add('dark-mode');
+            b.style.background = "var(--bg-night)";
+            if(sc.innerHTML === "") {
+                for(let i=0; i<80; i++) {
+                    let s = document.createElement('div');
+                    s.className = 'star';
+                    s.style.width = s.style.height = Math.random()*3+'px';
+                    s.style.top = Math.random()*100+'vh';
+                    s.style.left = Math.random()*100+'vw';
+                    s.style.animationDelay = Math.random()*3+'s';
+                    sc.appendChild(s);
+                }
+            }
+        } else {
+            b.classList.remove('dark-mode');
+            b.style.background = "var(--bg-day)";
+            sc.innerHTML = "";
+        }
+    }
+    setInterval(updateMode, 1000); updateMode();
+
+    function openModal(mode, id = null) {
+        currentMode = mode;
+        currentId = id;
+        const title = document.getElementById('modal-title');
+        const nameInp = document.getElementById('name');
+        const dateInp = document.getElementById('deadline');
+        const dateLbl = document.getElementById('date-label');
+
+        if(mode === 'new') {
+            title.innerText = "Yangi Qarz";
+            nameInp.style.display = 'block';
+            dateInp.style.display = 'block';
+            dateLbl.style.display = 'block';
+        } else {
+            title.innerText = mode === 'add' ? "Summa qo'shish" : "To'lovni ayirish";
+            nameInp.style.display = 'none';
+            dateInp.style.display = 'none';
+            dateLbl.style.display = 'none';
+        }
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+
+    function saveData() {
+        const name = document.getElementById('name').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+        const deadline = document.getElementById('deadline').value;
+
+        if(currentMode === 'new' && name && amount) {
+            debts.push({ id: Date.now(), name, amount, deadline, status: 'active', penaltyApplied: false });
+        } else if (currentId) {
+            let d = debts.find(x => x.id === currentId);
+            if(currentMode === 'add') d.amount += amount;
+            else if(currentMode === 'minus') d.amount -= amount;
+            if(d.amount <= 0) d.status = 'archive';
+        }
+        
+        localStorage.setItem('pro_debts_v3', JSON.stringify(debts));
+        document.getElementById('amount').value = '';
+        closeModal();
+        render('active');
+    }
+
+    function render(type) {
+        document.getElementById('t1').classList.toggle('active', type === 'active');
+        document.getElementById('t2').classList.toggle('active', type === 'archive');
+        const list = document.getElementById('list');
+        list.innerHTML = '';
+        let total = 0;
+        const today = new Date().toISOString().split('T')[0];
+
+        debts.filter(d => d.status === type).forEach(d => {
+            if(type === 'active') total += d.amount;
+            let isOverdue = type === 'active' && today > d.deadline;
+            
+            // 2% Jarima hisoblash
+            if(isOverdue && !d.penaltyApplied) {
+                d.amount *= 1.02;
+                d.penaltyApplied = true;
+                localStorage.setItem('pro_debts_v3', JSON.stringify(debts));
+            }
+
+            list.innerHTML += `
+                <div class="debt-card ${isOverdue ? 'overdue' : ''}">
+                    <div style="display:flex; justify-content:space-between">
+                        <b>👤 ${d.name}</b>
+                        ${isOverdue ? '<span style="color:#ff4757; font-weight:bold; font-size:10px">MUDDAT+2%</span>' : ''}
+                    </div>
+                    <div style="font-size: 22px; font-weight:bold; margin:5px 0">${Math.round(d.amount).toLocaleString()} so'm</div>
+                    <small>📅 Muddat: ${d.deadline || 'Yo\'q'}</small>
+                    ${type === 'active' ? `
+                    <div class="action-btns">
+                        <button class="btn-plus" onclick="openModal('add', ${d.id})">+ Qo'shish</button>
+                        <button class="btn-minus" onclick="openModal('minus', ${d.id})">- Ayirish</button>
+                        <button class="btn-del" onclick="archive(${d.id})">Yopish</button>
+                    </div>` : '<div style="color:#2ed573; font-weight:bold; margin-top:5px">✓ To\'langan</div>'}
+                </div>`;
+        });
+        document.getElementById('total-amount').innerText = type === 'active' ? "Jami kutilmoqda: " + total.toLocaleString() + " so'm" : "Arxivlanganlar";
+    }
+
+    function archive(id) {
+        debts = debts.map(x => x.id === id ? {...x, status: 'archive'} : x);
+        localStorage.setItem('pro_debts_v3', JSON.stringify(debts));
+        render('active');
+    }
+
+    render('active');
+</script>
+</body>
+</html>
